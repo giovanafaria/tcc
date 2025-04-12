@@ -2,10 +2,16 @@ import numpy as np
 from queue import PriorityQueue
 
 def load_elevation(width, height):
+    """
+    creates random elevation grid #TODO: replace with real one
+    """
     np.random.seed(42)
     return np.random.rand(height, width)
 
 def a_star_path(grid, start, goal):
+    """
+    Finding shortest paths with A* algorithm
+    """
     frontier = PriorityQueue()
     frontier.put((0, start))
     came_from = {start: None}

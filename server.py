@@ -3,11 +3,14 @@ from mesa.visualization.modules import CanvasGrid
 from model import EvacuationModel
 
 def agent_portrayal(agent):
+    """
+    sets size, shape and color
+    """
     return {"Shape": "circle", "Color": agent.color, "r": 0.6, "Layer": 0}
 
-grid = CanvasGrid(agent_portrayal, 20, 20, 500, 500)
+grid = CanvasGrid(agent_portrayal, 20, 20, 500, 500) # grid with pixels
 
-server = ModularServer(
+server = ModularServer( # GUI simulation
     EvacuationModel,
     [grid],
     "Evacuation Simulation",
