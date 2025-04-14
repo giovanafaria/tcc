@@ -6,9 +6,21 @@ from utils import a_star_path, load_elevation, load_paths
 
 import numpy as np
 
+
+class PartialMultiGrid(SingleGrid):
+    def is_cell_empty(self, pos):
+        """
+        If position is the safe zone, it will be treated like its empty (unlimited capacity)
+        """
+        if pos == self.model.safe_zone:
+            return True
+        return super().is_cell_empty(pos)
+
+
 class EvacuationModel(Model):
     def __init__(self, width, height, num_agents=20, pwd_ratio=0.3): # TODO: check which % is pwd 
-        self.grid = SingleGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
+        self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
+        self.grid.model = self # Attach the model instance so that safe_zone is accessible
         self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
         self.safe_zone = (width - 1, height - 1) # TODO: define safe zone
         self.terrain = load_elevation(width, height) # TODO: load elevation info
