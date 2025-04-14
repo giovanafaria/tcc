@@ -4,6 +4,7 @@ Agent-based evacuation simulator for landslides and floods in favelas, consideri
 
 ## Features
 - PwD agents with reduced mobility and visual differentiation
+- Shapefile integration: reads path geometries and favor cells on these paths
 - Terrain slope affecting agent speed
 - A* pathfinding
 - Interactive Mesa visualization

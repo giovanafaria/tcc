@@ -27,7 +27,7 @@ class Evacuee(Agent):
             next_elev = self.model.get_elevation(next_pos)
             slope = next_elev - current_elev
             slope_penalty = 1 + abs(slope) if slope > 0 else 1 # if its uphill, they maybe wont move as much?
+            effective_speed = self.speed / slope_penalty
 
-            speed = self.speed / slope_penalty
-            if self.model.random.random() < speed: # random: the steeper the slope, the lower the chance to move (maybe change to move slower anyway)
+            if self.model.grid.is_cell_empty(next_pos) and self.model.random.random() < effective_speed: # only move if next cell is empty
                 self.model.grid.move_agent(self, next_pos)
