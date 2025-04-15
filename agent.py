@@ -1,14 +1,16 @@
 from mesa import Agent
+from mobility import MobilityType
 
 class Evacuee(Agent):
-    def __init__(self, unique_id, model, is_pwd=False):
+    def __init__(self, unique_id, model, mobility_type=MobilityType.NON_PWD):
         """
         constructor for the agent
         """
         super().__init__(unique_id, model)
-        self.is_pwd = is_pwd  # move slower and it is red
-        self.speed = 0.4 if is_pwd else 1.0
-        self.color = "red" if is_pwd else "blue"
+        self.mobility_type = mobility_type  # move slower and it is red
+        self.base_speed = mobility_type.speed
+        self.color = mobility_type.color
+        self.current_speed = self.base_speed
 
     def step(self):
         """
@@ -26,8 +28,15 @@ class Evacuee(Agent):
             current_elev = self.model.get_elevation(self.pos)
             next_elev = self.model.get_elevation(next_pos)
             slope = next_elev - current_elev
-            slope_penalty = 1 + abs(slope) if slope > 0 else 1 # if its uphill, they maybe wont move as much?
-            effective_speed = self.speed / slope_penalty
+
+            if self.mobility_type == MobilityType.WHEELCHAIR:
+                slope_penalty = 1 + abs(slope) * 1.5  # wheelchairs are more affected
+            elif self.mobility_type == MobilityType.BLIND or self.mobility_type == MobilityType.CRUTCHES:
+                slope_penalty = 1 + abs(slope) * 0.8  # Blind or crutches less affected by slope but slower 
+            else:
+                slope_penalty = 1 + abs(slope) if slope > 0 else 1 # if its uphill, they maybe wont move as much?
+
+            effective_speed = self.base_speed / slope_penalty
 
             if self.model.grid.is_cell_empty(next_pos) and self.model.random.random() < effective_speed: # only move if next cell is empty
                 self.model.grid.move_agent(self, next_pos)

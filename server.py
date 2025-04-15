@@ -6,7 +6,13 @@ def agent_portrayal(agent):
     """
     sets size, shape and color
     """
-    return {"Shape": "circle", "Color": agent.color, "r": 0.6, "Layer": 0}
+    return {
+        "Shape": "circle",
+        "Color": agent.color,
+        "Filled": "true",
+        "r": 0.6,
+        "Layer": 0
+    }
 
 grid = CanvasGrid(agent_portrayal, 20, 20, 500, 500) # grid with pixels
 

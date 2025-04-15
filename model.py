@@ -2,6 +2,7 @@ from mesa import Model
 from mesa.space import SingleGrid
 from mesa.time import SimultaneousActivation
 from agent import Evacuee
+from mobility import MobilityType
 from utils import a_star_path, load_elevation, load_paths
 
 import numpy as np
@@ -26,13 +27,20 @@ class EvacuationModel(Model):
         self.terrain = load_elevation(width, height) # TODO: load elevation info
         self.path_mask = load_paths(width, height, "Caminho.shp")
 
+        pwd_types = [MobilityType.WHEELCHAIR, MobilityType.BLIND, MobilityType.CRUTCHES]
+
         for i in range(num_agents):
             # if they are pwd, place them randomly, add to the grid and schedule
-            is_pwd = self.random.random() < pwd_ratio
-            agent = Evacuee(i, self, is_pwd)
+            if self.random.random() < pwd_ratio:
+                mobility = self.random.choice(pwd_types)
+            else:
+                mobility = MobilityType.NON_PWD
+
             x, y = self.random.randrange(width), self.random.randrange(height)
             while (x, y) == self.safe_zone or not self.grid.is_cell_empty((x,y)):
                 x, y = self.random.randrange(width), self.random.randrange(height)
+            
+            agent = Evacuee(i, self, mobility_type=mobility)
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
 
