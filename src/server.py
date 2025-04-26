@@ -2,6 +2,9 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from src.model.simulation import EvacuationModel
 
+GRID_W = 110
+GRID_H = 90
+
 class ReportEnabledServer(ModularServer):
     _has_run = False
 
@@ -31,11 +34,11 @@ def agent_portrayal(agent):
         "Layer": 0
     }
 
-grid = CanvasGrid(agent_portrayal, 20, 20, 500, 500) # grid with pixels
+grid = CanvasGrid(agent_portrayal, GRID_W, GRID_H, 700, 580) # grid with pixels
 
 server = ReportEnabledServer( # GUI simulation
     EvacuationModel,
     [grid],
     "Evacuation Simulation",
-    {"width": 20, "height": 20, "num_agents": 30, "pwd_ratio": 0.3}
+    {"width": GRID_W, "height": GRID_H, "num_agents": 300, "pwd_ratio": 0.3}
 )

@@ -21,6 +21,10 @@ class PartialMultiGrid(SingleGrid):
 
 class EvacuationModel(Model):
     def __init__(self, width, height, num_agents=20, pwd_ratio=0.3): # TODO: check which % is pwd 
+        super().__init__()
+        self.width  = width    # 110
+        self.height = height   # 90
+
         # grid and schedule initialization
         self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
         self.grid.model = self # Attach the model instance so that safe_zone is accessible
