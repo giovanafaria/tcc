@@ -3,6 +3,7 @@ from mesa import Model
 from mesa.space import SingleGrid
 from mesa.time import SimultaneousActivation
 from src.agents.evacuee import Evacuee
+from src.agents.building import Building
 from src.mobility import MobilityType
 from src.reporting.manager import ReportManager
 from src.utils.pathfinding import a_star_path, load_elevation, load_paths
@@ -22,18 +23,28 @@ class PartialMultiGrid(SingleGrid):
 class EvacuationModel(Model):
     def __init__(self, width, height, num_agents=20, pwd_ratio=0.3): # TODO: check which % is pwd 
         super().__init__()
-        self.width  = width    # 110
-        self.height = height   # 90
-
         # grid and schedule initialization
         self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
         self.grid.model = self # Attach the model instance so that safe_zone is accessible
-        self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
-        self.running = True # control flag (mesa)
 
         # env setup
         self.safe_zone = (width - 1, height - 1) # TODO: define safe zone
         self.terrain = load_elevation(width, height) # TODO: load elevation info
+
+        self.width  = width    # 110
+        self.height = height   # 90
+
+        self.obstacle_mask = np.load("data/processed/obstacle_mask.npy")
+        uid = 10_000     # numbers above any evacuee id
+        for y in range(height):
+            for x in range(width):
+                if self.obstacle_mask[y, x]:
+                    b = Building(f"b{y}_{x}", (x, y), self)
+                    uid += 1
+                    self.grid.place_agent(b, (x, y)) # buildings are never scheduled
+
+        self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
+        self.running = True # control flag (mesa)
 
         shapefile_path = "data/raw/Caminho.shp"
 
@@ -52,9 +63,16 @@ class EvacuationModel(Model):
                 mobility = MobilityType.NON_PWD
 
             # agent creation code
-            x, y = self.random.randrange(width), self.random.randrange(height)
-            while (x, y) == self.safe_zone or not self.grid.is_cell_empty((x,y)):
+            while True:
                 x, y = self.random.randrange(width), self.random.randrange(height)
+
+                if (x, y) == self.safe_zone:            # not the safe zone
+                    continue
+                if self.obstacle_mask[y, x]:            # not inside building
+                    continue
+                if not self.grid.is_cell_empty((x, y)): # not occupied
+                    continue
+                break
             
             agent = Evacuee(i, self, mobility_type=mobility)
             self.grid.place_agent(agent, (x, y))
@@ -84,7 +102,9 @@ class EvacuationModel(Model):
     def get_path(self, start, goal):
         # pathfinding function
         # pass path_mask to favor cells on defined paths
-        return a_star_path(self.grid, start, goal, self.path_mask)
+        return a_star_path(self.grid, start, goal,
+                   path_mask=self.path_mask,
+                   obstacle_mask=self.obstacle_mask)
 
     def get_elevation(self, pos):
         # returns elevation at a specific location on the grid

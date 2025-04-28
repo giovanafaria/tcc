@@ -1,6 +1,7 @@
 from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from src.model.simulation import EvacuationModel
+from src.agents.building import Building
 
 GRID_W = 110
 GRID_H = 90
@@ -26,6 +27,14 @@ def agent_portrayal(agent):
     """
     sets size, shape and color
     """
+    if isinstance(agent, Building):
+        return {
+            "Shape": "rect",
+            "Color": "#555555",
+            "Filled": "true",
+            "Layer": 0,
+            "w": 1, "h": 1
+        }
     return {
         "Shape": "circle",
         "Color": agent.color,
@@ -40,5 +49,5 @@ server = ReportEnabledServer( # GUI simulation
     EvacuationModel,
     [grid],
     "Evacuation Simulation",
-    {"width": GRID_W, "height": GRID_H, "num_agents": 300, "pwd_ratio": 0.3}
+    {"width": GRID_W, "height": GRID_H, "num_agents": 20, "pwd_ratio": 0.3}
 )

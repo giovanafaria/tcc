@@ -29,7 +29,14 @@ def load_paths(width, height, shapefile):
                 mask[y, x] = True
     return mask
 
-def a_star_path(grid, start, goal, path_mask=None):
+def a_star_path(
+    grid,
+    start: tuple[int, int],
+    goal: tuple[int, int],
+    *,
+    path_mask:     np.ndarray | None = None,
+    obstacle_mask: np.ndarray | None = None,
+):
     """
     Finding shortest paths with A* algorithm
     If a cell is on a path (per path_mask), it has lower movement cost
@@ -41,29 +48,30 @@ def a_star_path(grid, start, goal, path_mask=None):
 
     # Manhattan distance heuristic
     def heuristic(a, b):
-        (x1, y1) = a
-        (x2, y2) = b
-        return abs(x1 - x2) + abs(y1 - y2)
+        ax, ay = a
+        bx, by = b
+        return abs(ax - bx) + abs(ay - by)     # Manhattan distance
 
     while not frontier.empty():
         _, current = frontier.get()
         if current == goal:
             break
 
-        neighbors = grid.get_neighborhood(current, moore=True, include_center=False)
-        for neighbor in neighbors:
-            # if its provided, prefer cells on a path
-            if path_mask is not None:
-                cost_factor = 1 if path_mask[neighbor[1], neighbor[0]] else 2
-            else:
-                cost_factor = 1
-            new_cost = cost_so_far[current] + 1
+        for n in grid.get_neighborhood(current, moore=True, include_center=False):
 
-            if neighbor not in cost_so_far or new_cost < cost_so_far[neighbor]:
-                cost_so_far[neighbor] = new_cost
-                priority = new_cost + heuristic(goal, neighbor)
-                frontier.put((priority, neighbor))
-                came_from[neighbor] = current
+            # 1) block out buildings
+            if obstacle_mask is not None and obstacle_mask[n[1], n[0]]:
+                continue
+
+            # 2) movement cost
+            step_cost = 1 if (path_mask is not None and path_mask[n[1], n[0]]) else 2
+            new_cost  = cost_so_far[current] + step_cost
+
+            if n not in cost_so_far or new_cost < cost_so_far[n]:
+                cost_so_far[n] = new_cost
+                priority       = new_cost + heuristic(goal, n)
+                frontier.put((priority, n))
+                came_from[n] = current
 
     # reconstruct the path from the start to goal if reachable
     path = []
