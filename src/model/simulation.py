@@ -28,7 +28,7 @@ class EvacuationModel(Model):
         self.grid.model = self # Attach the model instance so that safe_zone is accessible
 
         # env setup
-        self.safe_zone = (width - 1, height - 1) # TODO: define safe zone
+        self.safe_zone = (0, height - 1)
         self.terrain = load_elevation(width, height) # TODO: load elevation info
 
         self.width  = width    # 110
