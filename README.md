@@ -12,4 +12,5 @@ Agent-based evacuation simulator for landslides and floods in favelas, consideri
 ## How to Run
 ```bash
 pip install -r requirements.txt
+python -m src.utils.obstacle_mask
 python -m src.run

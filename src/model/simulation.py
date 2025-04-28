@@ -34,7 +34,9 @@ class EvacuationModel(Model):
         self.width  = width    # 110
         self.height = height   # 90
 
-        self.obstacle_mask = np.load("data/processed/obstacle_mask.npy")
+        raw_mask = np.load("data/processed/obstacle_mask.npy")
+        self.obstacle_mask = np.flipud(raw_mask)
+
         uid = 10_000     # numbers above any evacuee id
         for y in range(height):
             for x in range(width):
