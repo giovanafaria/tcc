@@ -11,16 +11,11 @@ class ReportEnabledServer(ModularServer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model = None
 
     def launch(self, port=None):
         """
         Run model to completion before showing visualization
         """
-        if not self._has_run:
-            self.model = self.model_cls(**self.model_kwargs)
-            self.model.run_model()
-            self._has_run = True
         super().launch(port)
 
 def agent_portrayal(agent):

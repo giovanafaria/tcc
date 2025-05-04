@@ -1,4 +1,5 @@
 from pathlib import Path
+from tornado.ioloop import IOLoop
 from mesa import Model
 from mesa.space import SingleGrid
 from mesa.time import SimultaneousActivation
@@ -80,6 +81,15 @@ class EvacuationModel(Model):
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
 
+    def all_agents_evacuated(self):
+        """
+        assumes each Evacuee sets self.evacuated=True onde it reaches safe_zone
+        """
+        return all(
+            getattr(agent, "evacuated", False)
+            for agent in self.schedule.agents
+        )
+
     def step(self):
         """
         Advance the model by one step
@@ -92,6 +102,10 @@ class EvacuationModel(Model):
             not hasattr(agent, 'evacuated')
             for agent in self.schedule.agents
         ) # auto update in the running state
+
+        if not self.running:
+            print("ending simulation")
+            IOLoop.current().stop()
 
     def run_model(self):
         while self.running:
