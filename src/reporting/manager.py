@@ -33,20 +33,6 @@ class ReportManager:
         }
         self.data.append(entry)
 
-    def record_evacuation_start(self, agent):
-        entry = {
-            "agent_id": agent.unique_id,
-            "mobility_type": agent.mobility_type.name,
-            "start_pos": agent.pos,
-            "start_time": self.model.schedule.steps,
-            "end_time": None,
-            "distance": 0,
-            "steps": 0,
-            "evacuated": False,
-            "final_pos": None,
-            "time_spent": 0
-        }
-        self.data.append(entry)
 
     def record_movement(self, agent):  # THIS WAS MISSING
         """
