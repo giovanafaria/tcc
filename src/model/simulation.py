@@ -46,6 +46,42 @@ class EvacuationModel(Model):
                     uid += 1
                     self.grid.place_agent(b, (x, y)) # buildings are never scheduled
 
+        # ─── timing parameters
+        self.step_length = 2.0              # meters per grid‐move/step #TODO: pegar essa referencia
+        self.target_time = 10 * 60          # total real‐world seconds = 600 s
+
+        # base speeds (m/s)
+        flat_speed     = 2.5                # your emergency flat speed
+        downhill_speed = 0.67               # average downhill speed
+
+        # Otherwise, if you want a “slow‐down factor”:
+        base_speed = flat_speed * downhill_speed
+
+        # PWD multipliers (fractions of base_speed)
+        multipliers = {
+            MobilityType.NON_PWD:    1.0,
+            MobilityType.WHEELCHAIR: 0.8,
+            MobilityType.BLIND:      0.7,
+            MobilityType.CRUTCHES:   0.6,
+        }
+
+        # compute the real‐world seconds each PWD tick would take
+        dt_list = [
+            self.step_length / (base_speed * m)
+            for m in multipliers.values()
+        ]
+        # pick the slowest (largest dt) so no one overshoots the clock
+        self.dt = max(dt_list)            # seconds per tick (a call to step())
+
+        # how many ticks until 600 s have elapsed?
+        self.max_steps = int(self.target_time / self.dt)
+
+        print(f'max steps: {self.max_steps}')
+
+        # step counter
+        self.current_step = 0
+        # ────────────────────────────────────────────────────────
+
         self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
         self.running = True # control flag (mesa)
 
@@ -92,28 +128,38 @@ class EvacuationModel(Model):
 
     def step(self):
         """
-        Advance the model by one step
+        Advance the model by one step, then stop if:
+        1) 10 minute equivalent in step, or
+        2) everybody's evacuated
         """
         # everyone takes their action
         self.schedule.step()
+        self.current_step += 1
 
-        # check is there is still people to evacuate TODO: quando implementar tempo isso vai ser só p calcular quem nao conseguiu chegar
-        self.running = any(
-            not hasattr(agent, 'evacuated')
-            for agent in self.schedule.agents
-        ) # auto update in the running state
+        # stop on time
+        if self.current_step >= self.max_steps:
+            real_time = self.current_step * self.dt
+            print(f"Reached {self.current_step} steps (~{real_time:.1f}s) → stopping on time.")
+            self.running = False
 
-        if not self.running:
-            print("ending simulation")
+            # post simulation
+            self.reporter.save_report()
+            print('simulation complete!')
+
             IOLoop.current().stop()
+            return
 
-    def run_model(self):
-        while self.running:
-            self.step()
+        # stop early if everybody is evacuated
+        if all(getattr(agent, "evacuated", False) for agent in self.schedule.agents):
+            print("All agents evacuated — stopping early.")
+            self.running = False
 
-        # post simulation
-        self.reporter.save_report()
-        print('simulation complete!')
+            # post simulation
+            self.reporter.save_report()
+            print('simulation complete!')
+
+            IOLoop.current().stop()
+            return
 
     def get_path(self, start, goal):
         # pathfinding function
