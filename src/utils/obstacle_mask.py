@@ -3,7 +3,7 @@ import numpy as np, geopandas as gpd
 from rasterio.transform import Affine
 import rasterio
 
-GRID_W, GRID_H = 110, 90           # same as model
+GRID_W, GRID_H = 220, 180           # same as model
 
 def build_mask(shp, transform):
     mask = np.zeros((GRID_H, GRID_W), dtype=bool)
@@ -31,9 +31,15 @@ def build_mask(shp, transform):
 if __name__ == "__main__":
     print("building obstacle_mask.npy …")
     with rasterio.open("data/raw/satellite_georeferenced.tif") as src:
-        base = src.transform           # metres ↔ original-pixel
-        # 2-metre cells relative to pixel size
-        transform = base * Affine.scale(2 / base.a, 2 / -base.e)
+
+        bounds = src.bounds  # bounding box in map coordinates
+        width_m  = bounds.right - bounds.left
+        height_m = bounds.top - bounds.bottom
+
+        cell_width  = width_m / GRID_W
+        cell_height = height_m / GRID_H
+
+        transform = Affine.translation(bounds.left, bounds.top) * Affine.scale(cell_width, -cell_height)
 
     m = build_mask("data/raw/corte_edificacoes.shp", transform)
     np.save("data/processed/obstacle_mask.npy", m)

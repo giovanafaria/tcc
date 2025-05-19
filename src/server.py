@@ -3,8 +3,8 @@ from mesa.visualization.modules import CanvasGrid
 from src.model.simulation import EvacuationModel
 from src.agents.building import Building
 
-GRID_W = 110
-GRID_H = 90
+GRID_W = 220
+GRID_H = 180
 
 class ReportEnabledServer(ModularServer):
     _has_run = False

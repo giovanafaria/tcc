@@ -89,6 +89,4 @@ class ReportManager:
             writer.writeheader()
             writer.writerows(self.data)
         
-            # process each agents data
-            for entry in self.data:
-                writer.writerow(entry)
+        print(f'Report written to {filename}')
