@@ -14,10 +14,18 @@ import numpy as np
 class PartialMultiGrid(SingleGrid):
     def is_cell_empty(self, pos):
         """
-        If position is the safe zone, it will be treated like its empty (unlimited capacity)
+        If position is the safe zone, it will be treated like its empty (unlimited capacity).
+        Also, never allow prohibited cells.
         """
+        # always allow safe zone
         if pos == self.model.safe_zone:
             return True
+        
+        # prohibited cells (a triangle)
+        if pos in getattr(self.model, "prohibited", ()):
+            return False
+        
+        # normal cells
         return super().is_cell_empty(pos)
 
 
@@ -46,6 +54,17 @@ class EvacuationModel(Model):
                     uid += 1
                     self.grid.place_agent(b, (x, y)) # buildings are never scheduled
 
+        # adding 'prohibited' cells (actually, they are hills and agents wouldnt be there in a normal situation)
+        leg_left = 70 # length of the edges that will build the triangle
+        leg_right = 50
+        self.prohibited = {
+            (x, y)
+            for x in range(self.width)
+            for y in range(self.height)
+            if (x + y < leg_left)                      # bottom‐left
+                or ((self.width - 1 - x) + y < leg_right)    # bottom‐right
+        }
+
         # ─── timing parameters
         self.step_length = 2.0              # meters per grid‐move/step #TODO: pegar essa referencia
         self.target_time = 10 * 60          # total real‐world seconds = 600 s
@@ -54,7 +73,7 @@ class EvacuationModel(Model):
         flat_speed     = 2.5                # your emergency flat speed
         downhill_speed = 0.67               # average downhill speed
 
-        # Otherwise, if you want a “slow‐down factor”:
+        # “slow‐down factor”
         base_speed = flat_speed * downhill_speed
 
         # PWD multipliers (fractions of base_speed)
@@ -73,14 +92,15 @@ class EvacuationModel(Model):
         # pick the slowest (largest dt) so no one overshoots the clock
         self.dt = max(dt_list)            # seconds per tick (a call to step())
 
+        self.time_per_step = (self.step_length / base_speed)
+
         # how many ticks until 600 s have elapsed?
-        self.max_steps = int(self.target_time / self.dt)
+        self.max_steps = int(self.target_time / self.time_per_step)
 
         print(f'max steps: {self.max_steps}')
 
         # step counter
         self.current_step = 0
-        # ────────────────────────────────────────────────────────
 
         self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
         self.running = True # control flag (mesa)
@@ -108,6 +128,8 @@ class EvacuationModel(Model):
                 if (x, y) == self.safe_zone:            # not the safe zone
                     continue
                 if self.obstacle_mask[y, x]:            # not inside building
+                    continue
+                if (x, y) in self.prohibited:
                     continue
                 if not self.grid.is_cell_empty((x, y)): # not occupied
                     continue

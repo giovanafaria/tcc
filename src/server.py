@@ -22,6 +22,9 @@ def agent_portrayal(agent):
     """
     sets size, shape and color
     """
+    if agent is None:
+        return None
+
     if isinstance(agent, Building):
         return {
             "Shape": "rect",
