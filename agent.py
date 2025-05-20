@@ -1,5 +1,5 @@
 from mesa import Agent
-from mobility import MobilityType
+from src.mobility import MobilityType
 
 class Evacuee(Agent):
     def __init__(self, unique_id, model, mobility_type=MobilityType.NON_PWD):

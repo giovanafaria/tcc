@@ -2,6 +2,7 @@ from mesa.visualization.ModularVisualization import ModularServer
 from mesa.visualization.modules import CanvasGrid
 from src.model.simulation import EvacuationModel
 from src.agents.building import Building
+from src.agents.landslide import Landslide
 
 GRID_W = 220
 GRID_H = 180
@@ -28,9 +29,17 @@ def agent_portrayal(agent):
     if isinstance(agent, Building):
         return {
             "Shape": "rect",
-            "Color": "#555555",
+            "Color": "#8B4513" if agent.buried else "#555555",
             "Filled": "true",
             "Layer": 0,
+            "w": 1, "h": 1
+        }
+    elif isinstance(agent, Landslide):
+        return {
+            "Shape": "rect",
+            "Color": "#a52a2a",  # reddish-brown for landslide front
+            "Filled": "true",
+            "Layer": 1,
             "w": 1, "h": 1
         }
     return {

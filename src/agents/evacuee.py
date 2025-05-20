@@ -13,11 +13,15 @@ class Evacuee(Agent):
         self.current_speed = self.base_speed
         self.path = []
         self.evacuation_started = False #flag to track evacuation start
+        self.alive = True
 
     def step(self):
         """
         method is run every simulation time step
         """
+        if not self.alive:
+            return
+
         if self.pos == self.model.safe_zone:
             # record evacuation = complete when reach safe zone
             if not hasattr(self, 'evacuated'):

@@ -1,10 +1,12 @@
-from pathlib import Path
+import random
+# from pathlib import Path
 from tornado.ioloop import IOLoop
 from mesa import Model
 from mesa.space import SingleGrid
 from mesa.time import SimultaneousActivation
 from src.agents.evacuee import Evacuee
 from src.agents.building import Building
+from src.agents.landslide import Landslide
 from src.mobility import MobilityType
 from src.reporting.manager import ReportManager
 from src.utils.pathfinding import a_star_path, load_elevation, load_paths
@@ -12,7 +14,7 @@ from src.utils.pathfinding import a_star_path, load_elevation, load_paths
 import numpy as np
 
 class PartialMultiGrid(SingleGrid):
-    def is_cell_empty(self, pos):
+    def is_cell_empty(self, pos, ignore_prohibited=False):
         """
         If position is the safe zone, it will be treated like its empty (unlimited capacity).
         Also, never allow prohibited cells.
@@ -22,7 +24,7 @@ class PartialMultiGrid(SingleGrid):
             return True
         
         # prohibited cells (a triangle)
-        if pos in getattr(self.model, "prohibited", ()):
+        if not ignore_prohibited and pos in getattr(self.model, "prohibited", ()):
             return False
         
         # normal cells
@@ -139,6 +141,18 @@ class EvacuationModel(Model):
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
 
+        # randomly start landslide from bottom-left or bottom-right
+        side = random.choice(["left", "right"])
+        x = 0 if side == "left" else self.width - 1
+        y = 0  # bottom of the grid
+
+        landslide = Landslide("landslide", self, side)
+
+        initial_pos = (0, 0) if side == "left" else (self.width - 1, 0)
+        landslide.front = [initial_pos]
+        self.force_place_agent(landslide, initial_pos)  # bypass is_cell_empty
+        self.schedule.add(landslide)
+
     def all_agents_evacuated(self):
         """
         assumes each Evacuee sets self.evacuated=True onde it reaches safe_zone
@@ -194,3 +208,9 @@ class EvacuationModel(Model):
         # returns elevation at a specific location on the grid
         x, y = pos
         return self.terrain[y, x]
+    
+    def force_place_agent(self, agent, pos):
+        # Direct low-level assignment to force agent placement
+        x, y = pos
+        agent.pos = pos
+        self.grid._grid[x][y] = agent
