@@ -45,7 +45,8 @@ class Landslide(Agent):
                     elif hasattr(agent, "mobility_type"):  # evacuee
                         agent.evacuated = False
                         agent.alive = False
-                        self.model.schedule.remove(agent)
+                        if agent.unique_id in self.model.schedule._agents:
+                            self.model.schedule.remove(agent)
 
                 if self.model.grid.is_cell_empty(pos, ignore_prohibited=True):
                     self.force_place(pos)
