@@ -15,6 +15,9 @@ class Evacuee(Agent):
         self.evacuation_started = False #flag to track evacuation start
         self.alive = True
 
+        self.evacuated              = False
+        self.impacted_by_landslide  = False
+
     def step(self):
         """
         method is run every simulation time step

@@ -1,4 +1,5 @@
 import random
+import numpy as np
 # from pathlib import Path
 from tornado.ioloop import IOLoop
 from mesa import Model
@@ -10,8 +11,6 @@ from src.agents.landslide import Landslide
 from src.mobility import MobilityType
 from src.reporting.manager import ReportManager
 from src.utils.pathfinding import a_star_path, load_elevation, load_paths
-
-import numpy as np
 
 class PartialMultiGrid(SingleGrid):
     def is_cell_empty(self, pos, ignore_prohibited=False):
@@ -32,7 +31,7 @@ class PartialMultiGrid(SingleGrid):
 
 
 class EvacuationModel(Model):
-    def __init__(self, width, height, num_agents=20, pwd_ratio=0.3): # TODO: check which % is pwd 
+    def __init__(self, width, height, num_agents=20, pwd_ratio=0.089): # data from IBGE
         super().__init__()
         # grid and schedule initialization
         self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
@@ -42,8 +41,8 @@ class EvacuationModel(Model):
         self.safe_zone = (0, height - 1)
         self.terrain = load_elevation(width, height) # TODO: load elevation info
 
-        self.width  = width    # 110
-        self.height = height   # 90
+        self.width  = width    # 220
+        self.height = height   # 180
 
         raw_mask = np.load("data/processed/obstacle_mask.npy")
         self.obstacle_mask = np.flipud(raw_mask)
@@ -157,10 +156,10 @@ class EvacuationModel(Model):
         """
         assumes each Evacuee sets self.evacuated=True onde it reaches safe_zone
         """
-        return all(
-            getattr(agent, "evacuated", False)
-            for agent in self.schedule.agents
-        )
+        evacuees = [a for a in self.schedule.agents if isinstance(a, Evacuee)]
+        if not evacuees:
+            return False
+        return all(getattr(a, "evacuated", False) for a in evacuees)
 
     def step(self):
         """
@@ -172,10 +171,9 @@ class EvacuationModel(Model):
         self.schedule.step()
         self.current_step += 1
 
-        # stop on time
-        if self.current_step >= self.max_steps:
-            real_time = self.current_step * self.dt
-            print(f"Reached {self.current_step} steps (~{real_time:.1f}s) → stopping on time.")
+        # stop early if everybody is evacuated
+        if self.all_agents_evacuated():
+            print("All agents evacuated — stopping early.")
             self.running = False
 
             # post simulation
@@ -185,9 +183,10 @@ class EvacuationModel(Model):
             IOLoop.current().stop()
             return
 
-        # stop early if everybody is evacuated
-        if all(getattr(agent, "evacuated", False) for agent in self.schedule.agents):
-            print("All agents evacuated — stopping early.")
+        # stop on time
+        if self.current_step >= self.max_steps:
+            real_time = self.current_step * self.dt
+            print(f"Reached {self.current_step} steps (~{real_time:.1f}s) → stopping on time.")
             self.running = False
 
             # post simulation
