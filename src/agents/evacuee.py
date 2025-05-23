@@ -13,6 +13,7 @@ class Evacuee(Agent):
         self.current_speed = self.base_speed
         self.path = []
         self.evacuation_started = False #flag to track evacuation start
+        self.impacted_by_landslide = False
         self.alive = True
 
         self.evacuated              = False

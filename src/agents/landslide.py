@@ -2,8 +2,9 @@ from mesa import Agent
 from src.agents.building import Building
 
 class Landslide(Agent):
-    def __init__(self, unique_id, model, direction):
+    def __init__(self, unique_id, model, mask, direction):
         super().__init__(unique_id, model)
+        self.mask = mask
         self.direction = direction
         self.front = []  # current cells in the wave
 
@@ -11,21 +12,10 @@ class Landslide(Agent):
         next_front = []
 
         for (x, y) in self.front:
-            if self.direction == "left":
+            if self.direction=="up":
                 candidates = [
-                    (x-1, y+1),  # up-left
-                    (x,   y+1),  # up
-                    (x+1, y+1),  # up-right
-                    (x-1, y),    # left
-                    (x+1, y),    # right
-                ]
-            else:
-                candidates = [
-                    (x+1, y+1),  # up-right
-                    (x,   y+1),  # up
-                    (x-1, y+1),  # up-left
-                    (x+1, y),    # right
-                    (x-1, y),    # left
+                    (x-1,y+1),(x,y+1),(x+1,y+1),
+                    (x-1,y),(x+1,y)
                 ]
 
             for nx, ny in candidates:
@@ -36,7 +26,8 @@ class Landslide(Agent):
 
                 cell_agents = self.model.grid.get_cell_list_contents([(nx, ny)])
 
-                if any(isinstance(a, Landslide) for a in cell_agents):
+                if any(isinstance(a, Landslide)
+                       for a in self.model.grid.get_cell_list_contents([pos])):
                     continue
 
                 for agent in cell_agents:
@@ -45,10 +36,13 @@ class Landslide(Agent):
                     elif hasattr(agent, "mobility_type"):  # evacuee
                         agent.evacuated = False
                         agent.alive = False
+
+                        self.model.reporter.record_landslide_impact(agent)
+
                         if agent.unique_id in self.model.schedule._agents:
                             self.model.schedule.remove(agent)
 
-                if self.model.grid.is_cell_empty(pos, ignore_prohibited=True):
+                if (self.model.grid.is_cell_empty(pos, ignore_prohibited=True) and self.mask[ny, nx]):
                     self.force_place(pos)
                     next_front.append(pos)
 

@@ -29,7 +29,7 @@ def agent_portrayal(agent):
     if isinstance(agent, Building):
         return {
             "Shape": "rect",
-            "Color": "#8B4513" if agent.buried else "#555555",
+            "Color": "#555555",
             "Filled": "true",
             "Layer": 0,
             "w": 1, "h": 1
@@ -56,5 +56,11 @@ server = ReportEnabledServer( # GUI simulation
     EvacuationModel,
     [grid],
     "Evacuation Simulation",
-    {"width": GRID_W, "height": GRID_H, "num_agents": 20, "pwd_ratio": 0.3}
+    {
+     "width": GRID_W,
+     "height": GRID_H,
+     "num_agents": 50,
+     "pwd_ratio": 0.089, # data from IBGE (2024)
+     "active_areas": [1, 2]  # only shapefile x and y
+     }  
 )

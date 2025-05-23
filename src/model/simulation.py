@@ -1,5 +1,6 @@
 import random
 import numpy as np
+from scipy.ndimage import label
 # from pathlib import Path
 from tornado.ioloop import IOLoop
 from mesa import Model
@@ -31,7 +32,7 @@ class PartialMultiGrid(SingleGrid):
 
 
 class EvacuationModel(Model):
-    def __init__(self, width, height, num_agents=20, pwd_ratio=0.089): # data from IBGE
+    def __init__(self, width, height, num_agents=20, pwd_ratio=0.089, active_areas=None): # data from IBGE
         super().__init__()
         # grid and schedule initialization
         self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
@@ -67,7 +68,7 @@ class EvacuationModel(Model):
         }
 
         # ─── timing parameters
-        self.step_length = 2.0              # meters per grid‐move/step #TODO: pegar essa referencia
+        self.step_length = 1.0              # meters per grid‐move/step
         self.target_time = 10 * 60          # total real‐world seconds = 600 s
 
         # base speeds (m/s)
@@ -140,21 +141,53 @@ class EvacuationModel(Model):
             self.grid.place_agent(agent, (x, y))
             self.schedule.add(agent)
 
-        # randomly start landslide from bottom-left or bottom-right
-        side = random.choice(["left", "right"])
-        x = 0 if side == "left" else self.width - 1
-        y = 0  # bottom of the grid
+        # landslide configs
+        mask_files = [
+            "data/processed/landslide_mask_1.npy",
+            "data/processed/landslide_mask_2.npy",
+            "data/processed/landslide_mask_3.npy",
+        ]
+        self.landslide_masks = [
+            np.flipud(np.load(fp)) for fp in mask_files
+        ]
+        # if user didnt specify activate all
+        self.active_areas = (
+            active_areas
+            if active_areas is not None
+            else list(range(len(self.landslide_masks)))
+        )
 
-        landslide = Landslide("landslide", self, side)
+        self.impacted_by_landslide = False
 
-        initial_pos = (0, 0) if side == "left" else (self.width - 1, 0)
-        landslide.front = [initial_pos]
-        self.force_place_agent(landslide, initial_pos)  # bypass is_cell_empty
-        self.schedule.add(landslide)
+        lid = 10000
+        for idx, mask in enumerate(self.landslide_masks):
+            if idx not in self.active_areas:
+                continue
+            # label components inside this shapefile (usually 1, but safe)
+            labeled, n_comp = label(mask)
+            for comp in range(1, n_comp+1):
+                coords = np.argwhere(labeled == comp)
+                base_row = coords[:,0].min()
+                base_front = [
+                    (col, base_row) for (row,col) in coords
+                    if row == base_row
+                ]
+                wave = Landslide(
+                    unique_id=f"ls_{idx}_{comp}",
+                    model=self,
+                    mask=self.landslide_masks[idx],
+                    direction="up"
+                )
+                wave.front = base_front
+                for pos in base_front:
+                    wave.force_place(pos)
+                self.schedule.add(wave)
+                lid += 1
 
-    def all_agents_evacuated(self):
+    def all_agents_done(self):
         """
-        assumes each Evacuee sets self.evacuated=True onde it reaches safe_zone
+        assumes each Evacuee sets self.evacuated=True once it reaches safe_zone
+        or sets self.impacted_by_landslide=True once landslide hits it
         """
         evacuees = [a for a in self.schedule.agents if isinstance(a, Evacuee)]
         if not evacuees:
@@ -171,9 +204,19 @@ class EvacuationModel(Model):
         self.schedule.step()
         self.current_step += 1
 
+        landslides = [a for a in self.schedule.agents if isinstance(a, Landslide)]
+        for evac in [a for a in self.schedule.agents if isinstance(a, Evacuee)]:
+            if not evac.evacuated and not evac.impacted_by_landslide:
+                for ls in landslides:
+                    if evac.pos in ls.front:
+                        evac.impacted_by_landslide = True
+                        self.reporter.record_landslide_impact(evac)
+                        evac.alive = False
+                        break
+
         # stop early if everybody is evacuated
-        if self.all_agents_evacuated():
-            print("All agents evacuated — stopping early.")
+        if self.all_agents_done():
+            print("All agents evacuated or impacted by landslide — stopping early.")
             self.running = False
 
             # post simulation

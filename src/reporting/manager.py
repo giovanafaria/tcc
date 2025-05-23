@@ -12,7 +12,8 @@ class ReportManager:
         self.header = [
             "agent_id", "mobility_type", "start_pos",
             "start_time", "end_time", "distance",
-            "steps", "evacuated", "final_pos", "time_spent"
+            "steps", "evacuated", "impacted_by_landslide",
+            "final_pos", "time_spent"
         ]
 
     def record_evacuation_start(self, agent):
@@ -28,13 +29,14 @@ class ReportManager:
             "distance": 0,  # cumulative distance traveled
             "steps": 0,  # number of movement attempts
             "evacuated": False,  # success flag  # TODO: colocar tempo para a flag não necessariamente ser true sempre
+            "impacted_by_landslide": False,
             "final_pos": None,  # add all fields with default values
             "time_spent": 0     # always equals as end_time, bc start_time = 0
         }
         self.data.append(entry)
 
 
-    def record_movement(self, agent):  # THIS WAS MISSING
+    def record_movement(self, agent):
         """
         Update movement metrics
         """
@@ -44,6 +46,15 @@ class ReportManager:
                 dx = agent.pos[0] - entry["start_pos"][0]
                 dy = agent.pos[1] - entry["start_pos"][1]
                 entry["distance"] = (dx**2 + dy**2)**0.5  # euclidean distance > represent straight line distance (x grid cells)
+                break
+
+    def record_landslide_impact(self, agent):
+        for entry in self.data:
+            if entry["agent_id"] == agent.unique_id:
+                entry["impacted_by_landslide"] = True
+                entry["end_time"]  = self.model.schedule.steps
+                entry["final_pos"] = agent.pos
+                entry["time_spent"] = entry["end_time"] - entry["start_time"]
                 break
 
     def record_evacuation_end(self, agent):
@@ -65,9 +76,9 @@ class ReportManager:
         """
         if not any(entry["evacuated"] for entry in self.data):
             return
-        
+
         for entry in self.data:
-            if not entry["evacuated"]:
+            if entry["end_time"] is None:
                 agent = next(
                     (a for a in self.model.schedule.agents
                     if a.unique_id == entry["agent_id"]),

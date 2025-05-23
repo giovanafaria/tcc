@@ -25,8 +25,15 @@ def main():
         help="Number of agents per run"
     )
     parser.add_argument(
-        "--pwd_ratio", type=float, default=0.3,
+        "--pwd_ratio", type=float, default=0.089,  # data from IBGE 
         help="Ratio of PWD agents"
+    )
+    parser.add_argument(
+        "--active_areas", "-a",
+        type=int,
+        nargs="+",
+        default=None,
+        help="Which landslide mask indices to activate (e.g. 0 2 for areas 1 & 3)"
     )
     args = parser.parse_args()
 
@@ -36,7 +43,8 @@ def main():
             width=args.width,
             height=args.height,
             num_agents=args.num_agents,
-            pwd_ratio=args.pwd_ratio
+            pwd_ratio=args.pwd_ratio,
+            active_areas=args.active_areas
         )
         model.run_model()
     print("\nAll done!")
