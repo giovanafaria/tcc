@@ -21,7 +21,6 @@ def load_paths(width, height, shapefile):
     # false = no path, true = path present
     mask = np.zeros((height, width), dtype=bool)
 
-    #TODO: change it for large grids (my case later?)
     for y in range(height): # check if its center point is contained in any of the geometries
         for x in range(width):
             cell_point = Point(x + 0.5, y + 0.5)

@@ -1,7 +1,6 @@
 import random
 import numpy as np
 from scipy.ndimage import label
-# from pathlib import Path
 from tornado.ioloop import IOLoop
 from mesa import Model
 from mesa.space import SingleGrid
@@ -32,8 +31,19 @@ class PartialMultiGrid(SingleGrid):
 
 
 class EvacuationModel(Model):
-    def __init__(self, width, height, num_agents=20, pwd_ratio=0.089, active_areas=None): # data from IBGE
+    def __init__(
+        self,
+        width,
+        height,
+        num_agents=20,
+        pwd_ratio=0.089, # data from IBGE
+        active_areas=None,
+        enable_landslide=True
+        ): 
         super().__init__()
+
+        self.enable_landslide = enable_landslide
+
         # grid and schedule initialization
         self.grid = PartialMultiGrid(width, height, torus=False) # creates the simulation space / single for one agent per cell
         self.grid.model = self # Attach the model instance so that safe_zone is accessible
