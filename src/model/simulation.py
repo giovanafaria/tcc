@@ -142,47 +142,62 @@ class EvacuationModel(Model):
             self.schedule.add(agent)
 
         # landslide configs
-        mask_files = [
-            "data/processed/landslide_mask_1.npy",
-            "data/processed/landslide_mask_2.npy",
-            "data/processed/landslide_mask_3.npy",
-        ]
-        self.landslide_masks = [
-            np.flipud(np.load(fp)) for fp in mask_files
-        ]
-        # if user didnt specify activate all
-        self.active_areas = (
-            active_areas
-            if active_areas is not None
-            else list(range(len(self.landslide_masks)))
-        )
+        if self.enable_landslide:
+            mask_files = [
+                "data/processed/landslide_mask_1.npy",
+                "data/processed/landslide_mask_2.npy",
+                "data/processed/landslide_mask_3.npy",
+            ]
+            self.landslide_masks = [
+                np.flipud(np.load(fp)) for fp in mask_files
+            ]
+            # if user didnt specify activate all
+            self.active_areas = (
+                active_areas
+                if active_areas is not None
+                else list(range(len(self.landslide_masks)))
+            )
 
-        self.impacted_by_landslide = False
+            self.impacted_by_landslide = False
 
-        lid = 10000
-        for idx, mask in enumerate(self.landslide_masks):
-            if idx not in self.active_areas:
-                continue
-            # label components inside this shapefile (usually 1, but safe)
-            labeled, n_comp = label(mask)
-            for comp in range(1, n_comp+1):
-                coords = np.argwhere(labeled == comp)
-                base_row = coords[:,0].min()
-                base_front = [
-                    (col, base_row) for (row,col) in coords
-                    if row == base_row
-                ]
-                wave = Landslide(
-                    unique_id=f"ls_{idx}_{comp}",
-                    model=self,
-                    mask=self.landslide_masks[idx],
-                    direction="up"
-                )
-                wave.front = base_front
-                for pos in base_front:
-                    wave.force_place(pos)
-                self.schedule.add(wave)
-                lid += 1
+            lid = 10000
+            for idx, mask in enumerate(self.landslide_masks):
+                if idx not in self.active_areas:
+                    continue
+                # label components inside this shapefile (usually 1, but safe)
+                labeled, n_comp = label(mask)
+                for comp in range(1, n_comp+1):
+                    coords = np.argwhere(labeled == comp)
+                    base_row = coords[:,0].min()
+                    base_front = [
+                        (col, base_row) for (row,col) in coords
+                        if row == base_row
+                    ]
+                    wave = Landslide(
+                        unique_id=f"ls_{idx}_{comp}",
+                        model=self,
+                        mask=self.landslide_masks[idx],
+                        direction="up"
+                    )
+                    wave.front = base_front
+                    for pos in base_front:
+                        wave.force_place(pos)
+                    self.schedule.add(wave)
+                    lid += 1
+        else:
+            self.landslide_masks = []
+            self.active_areas = []
+
+        # reporting system 
+        self.reporter = ReportManager(self)
+
+        # thresholds (in seconds) at which to auto-save intermediate reports
+        self._report_thresholds = {
+            60:  "minute_1",
+            180: "minute_3",
+            300: "minute_5",
+        }
+        self._reports_saved = set()   # to avoid duplicates
 
     def all_agents_done(self):
         """
@@ -191,8 +206,11 @@ class EvacuationModel(Model):
         """
         evacuees = [a for a in self.schedule.agents if isinstance(a, Evacuee)]
         if not evacuees:
-            return False
-        return all(getattr(a, "evacuated", False) for a in evacuees)
+            return True
+        return all(
+            a.evacuated or getattr(a, "impacted_by_landslide", False)
+            for a in evacuees
+        )
 
     def step(self):
         """
@@ -203,6 +221,14 @@ class EvacuationModel(Model):
         # everyone takes their action
         self.schedule.step()
         self.current_step += 1
+
+        # compute the real time so far
+        elapsed = self.current_step * self.time_per_step
+        for secs, folder in self._report_thresholds.items():
+            if elapsed >= secs and secs not in self._reports_saved:
+                self._reports_saved.add(secs)
+                print(f"Reached ~{int(elapsed)}s → saving report for {folder}")
+                self.reporter.save_report(folder)
 
         landslides = [a for a in self.schedule.agents if isinstance(a, Landslide)]
         for evac in [a for a in self.schedule.agents if isinstance(a, Evacuee)]:
@@ -220,7 +246,7 @@ class EvacuationModel(Model):
             self.running = False
 
             # post simulation
-            self.reporter.save_report()
+            self.reporter.save_report("all_done")
             print('simulation complete!')
 
             IOLoop.current().stop()
@@ -233,18 +259,36 @@ class EvacuationModel(Model):
             self.running = False
 
             # post simulation
-            self.reporter.save_report()
+            self.reporter.save_report("all_done")
             print('simulation complete!')
 
             IOLoop.current().stop()
             return
 
     def get_path(self, start, goal):
+        """
+        Compute an A* path avoiding both static buildings buildings
+        and any cells currently occupied by landslide front(s)
+        """
         # pathfinding function
+        # build a dynamic landslide-mask
+        landslide_block = np.zeros_like(self.obstacle_mask, dtype=bool)
+        for agent in self.schedule.agents:
+            if isinstance(agent, Landslide):
+                for (x, y) in agent.front:
+                    landslide_block[y, x] = True
+
+        # combine static obstacles + landslide blocks
+        combined_obstacle = np.logical_or(self.obstacle_mask, landslide_block)
+
         # pass path_mask to favor cells on defined paths
-        return a_star_path(self.grid, start, goal,
-                   path_mask=self.path_mask,
-                   obstacle_mask=self.obstacle_mask)
+        return a_star_path(
+            self.grid,
+            start,
+            goal,
+            path_mask=self.path_mask,
+            obstacle_mask=combined_obstacle
+        )
 
     def get_elevation(self, pos):
         # returns elevation at a specific location on the grid

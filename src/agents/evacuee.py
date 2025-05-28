@@ -12,8 +12,8 @@ class Evacuee(Agent):
         self.color = mobility_type.color
         self.current_speed = self.base_speed
         self.path = []
-        self.evacuation_started = False #flag to track evacuation start
-        self.impacted_by_landslide = False
+        self.evacuation_started     = False  # flag to track evacuation start
+        self.impacted_by_landslide  = False
         self.alive = True
 
         self.evacuated              = False
@@ -59,7 +59,11 @@ class Evacuee(Agent):
             if self.model.obstacle_mask[next_pos[1], next_pos[0]]:
                 return          # blocked by building → stay this tick
 
-            if self.model.grid.is_cell_empty(next_pos) and self.model.random.random() < effective_speed: # only move if next cell is empty
+            if (
+                not self.model.obstacle_mask[next_pos[1], next_pos[0]]  # no building
+                and self.model.grid.is_cell_empty(next_pos)             # not agent
+                and self.model.random.random() < effective_speed
+            ): # only move if next cell is empty
                 self.model.grid.move_agent(self, next_pos)
                 self.model.reporter.record_movement(self)
 

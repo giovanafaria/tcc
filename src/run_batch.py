@@ -35,6 +35,19 @@ def main():
         default=None,
         help="Which landslide mask indices to activate (e.g. 0 2 for areas 1 & 3)"
     )
+    parser.add_argument(
+        "--enable-landslide",
+        dest="enable_landslide",
+        action="store_true",
+        help="Enable landslide simulation (default)",
+    )
+    parser.add_argument(
+        "--disable-landslide",
+        dest="enable_landslide",
+        action="store_false",
+        help="Disable landslide simulation",
+    )
+    parser.set_defaults(enable_landslide=True)
     args = parser.parse_args()
 
     for i in range(1, args.runs + 1):
@@ -44,7 +57,8 @@ def main():
             height=args.height,
             num_agents=args.num_agents,
             pwd_ratio=args.pwd_ratio,
-            active_areas=args.active_areas
+            active_areas=args.active_areas,
+            enable_landslide=args.enable_landslide,
         )
         model.run_model()
     print("\nAll done!")

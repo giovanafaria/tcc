@@ -70,11 +70,11 @@ class ReportManager:
                     "time_spent": self.model.schedule.steps - entry["start_time"]
                 })
 
-    def save_report(self):
+    def save_report(self, folder_name: str):
         """
-        Generates csv output file
+        Generates a .csv in reports/<folder name>/ with all entries
         """
-        if not any(entry["evacuated"] for entry in self.data):
+        if not any(entry["evacuated"] or entry["impacted_by_landslide"] for entry in self.data):
             return
 
         for entry in self.data:
@@ -89,11 +89,11 @@ class ReportManager:
                     entry["final_pos"] = agent.pos
                     entry["time_spent"] = entry["end_time"] - entry["start_time"]
 
-        reports_dir = Path("reports")
-        reports_dir.mkdir(exist_ok=True)  # making sure the dir is ok
+        reports_dir = Path("reports") / folder_name
+        reports_dir.mkdir(parents=True, exist_ok=True)  # making sure the dir is ok
 
         timestamp = time.strftime("%Y%m%d-%H%M%S")
-        filename = reports_dir / f"evacuation_report_{timestamp}.csv"
+        filename = reports_dir / f"{folder_name}_report_{timestamp}.csv"
 
         with open(filename, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=self.header)
