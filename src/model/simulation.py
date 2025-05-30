@@ -90,10 +90,10 @@ class EvacuationModel(Model):
 
         # PWD multipliers (fractions of base_speed)
         multipliers = {
-            MobilityType.NON_PWD:    1.0,
-            MobilityType.WHEELCHAIR: 0.8,
-            MobilityType.BLIND:      0.7,
-            MobilityType.CRUTCHES:   0.6,
+            MobilityType.NON_PWD:      1.0,
+            MobilityType.MOTOR:        0.55,
+            MobilityType.VISUAL:       0.4,
+            MobilityType.INTELLECTUAL: 0.65,
         }
 
         # compute the real‐world seconds each PWD tick would take
