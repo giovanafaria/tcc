@@ -86,7 +86,7 @@ class EvacuationModel(Model):
         downhill_speed = 0.67               # average downhill speed
 
         # “slow‐down factor”
-        base_speed = flat_speed * downhill_speed
+        self.base_speed = flat_speed * downhill_speed
 
         # PWD multipliers (fractions of base_speed)
         multipliers = {
@@ -98,13 +98,13 @@ class EvacuationModel(Model):
 
         # compute the real‐world seconds each PWD tick would take
         dt_list = [
-            self.step_length / (base_speed * m)
+            self.step_length / (self.base_speed * m)
             for m in multipliers.values()
         ]
         # pick the slowest (largest dt) so no one overshoots the clock
         self.dt = max(dt_list)            # seconds per tick (a call to step())
 
-        self.time_per_step = (self.step_length / base_speed)
+        self.time_per_step = (self.step_length / self.base_speed)
 
         # how many ticks until 600 s have elapsed?
         self.max_steps = int(self.target_time / self.time_per_step)
@@ -168,6 +168,13 @@ class EvacuationModel(Model):
                 else list(range(len(self.landslide_masks)))
             )
 
+            # landslide timing / velocity
+            self.landslide_speed         = 10  # m/s  # verificar isso e bater o martelo
+            self.ls_cells_per_tick = (
+                self.landslide_speed * self.base_speed
+                / self.step_length
+            )
+
             self.impacted_by_landslide = False
 
             lid = 10000
@@ -187,7 +194,8 @@ class EvacuationModel(Model):
                         unique_id=f"ls_{idx}_{comp}",
                         model=self,
                         mask=self.landslide_masks[idx],
-                        direction="up"
+                        direction="up",
+                        cells_per_tick=self.ls_cells_per_tick
                     )
                     wave.front = base_front
                     for pos in base_front:
