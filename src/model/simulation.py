@@ -239,16 +239,6 @@ class EvacuationModel(Model):
                 print(f"Reached ~{int(elapsed)}s → saving report for {folder}")
                 self.reporter.save_report(folder)
 
-        landslides = [a for a in self.schedule.agents if isinstance(a, Landslide)]
-        for evac in [a for a in self.schedule.agents if isinstance(a, Evacuee)]:
-            if not evac.evacuated and not evac.impacted_by_landslide:
-                for ls in landslides:
-                    if evac.pos in ls.front:
-                        evac.impacted_by_landslide = True
-                        self.reporter.record_landslide_impact(evac)
-                        evac.alive = False
-                        break
-
         # stop early if everybody is evacuated
         if self.all_agents_done():
             print("All agents evacuated or impacted by landslide — stopping early.")
