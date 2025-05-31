@@ -6,10 +6,10 @@ from queue import PriorityQueue
 
 def load_elevation(width, height):
     """
-    creates random elevation grid #TODO: replace with real one
+    creates elevation grid
     """
-    np.random.seed(42)
-    return np.random.rand(height, width)
+    elevation = np.load("data/processed/elevation.npy")
+    return elevation[:height, :width]
 
 def load_paths(width, height, shapefile):
     """
