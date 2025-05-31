@@ -82,24 +82,12 @@ class EvacuationModel(Model):
         self.target_time = 10 * 60          # total real‐world seconds = 600 s
 
         # base speeds (m/s)
-        flat_speed     = 2.5                # your emergency flat speed
-        downhill_speed = 0.67               # average downhill speed
+        self.base_speed     = 1.5               # your emergency flat speed
 
-        # “slow‐down factor”
-        self.base_speed = flat_speed * downhill_speed
-
-        # PWD multipliers (fractions of base_speed)
-        multipliers = {
-            MobilityType.NON_PWD:      1.0,
-            MobilityType.MOTOR:        0.55,
-            MobilityType.VISUAL:       0.4,
-            MobilityType.INTELLECTUAL: 0.65,
-        }
-
-        # compute the real‐world seconds each PWD tick would take
+        # compute the real‐world seconds each PWD tick would take (slowest agent)
         dt_list = [
-            self.step_length / (self.base_speed * m)
-            for m in multipliers.values()
+            self.step_length / (self.base_speed * mt.speed)
+            for mt in MobilityType
         ]
         # pick the slowest (largest dt) so no one overshoots the clock
         self.dt = max(dt_list)            # seconds per tick (a call to step())
@@ -124,7 +112,7 @@ class EvacuationModel(Model):
         # reporting system
         self.reporter = ReportManager(self)
 
-        pwd_types = [MobilityType.WHEELCHAIR, MobilityType.BLIND, MobilityType.CRUTCHES]
+        pwd_types = [MobilityType.MOTOR, MobilityType.VISUAL, MobilityType.INTELLECTUAL]
 
         for i in range(num_agents):
             # if they are pwd, place them randomly, add to the grid and schedule
@@ -169,7 +157,7 @@ class EvacuationModel(Model):
             )
 
             # landslide timing / velocity
-            self.landslide_speed         = 10  # m/s  # verificar isso e bater o martelo
+            self.landslide_speed         = 5.25  # m/s  
             self.ls_cells_per_tick = (
                 self.landslide_speed * self.base_speed
                 / self.step_length
@@ -221,12 +209,15 @@ class EvacuationModel(Model):
         """
         assumes each Evacuee sets self.evacuated=True once it reaches safe_zone
         or sets self.impacted_by_landslide=True once landslide hits it
+        or sets self.stuck=True when no path is available for too long
         """
         evacuees = [a for a in self.schedule.agents if isinstance(a, Evacuee)]
         if not evacuees:
             return True
         return all(
-            a.evacuated or getattr(a, "impacted_by_landslide", False)
+            a.evacuated
+            or getattr(a, "impacted_by_landslide", False)
+            or getattr(a, "stuck", False)
             for a in evacuees
         )
 

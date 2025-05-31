@@ -11,8 +11,8 @@ class ReportManager:
         # columns definition for csv
         self.header = [
             "agent_id", "mobility_type", "start_pos",
-            "start_time", "end_time", "distance",
-            "steps", "evacuated", "impacted_by_landslide",
+            "start_time", "end_time", "distance", "steps",
+            "evacuated", "impacted_by_landslide", "stuck",
             "final_pos", "time_spent"
         ]
 
@@ -30,6 +30,7 @@ class ReportManager:
             "steps": 0,  # number of movement attempts
             "evacuated": False,  # success flag  # TODO: colocar tempo para a flag não necessariamente ser true sempre
             "impacted_by_landslide": False,
+            "stuck": False,
             "final_pos": None,  # add all fields with default values
             "time_spent": 0     # always equals as end_time, bc start_time = 0
         }
@@ -70,11 +71,23 @@ class ReportManager:
                     "time_spent": self.model.schedule.steps - entry["start_time"]
                 })
 
+    def record_agent_stuck(self, agent):
+        """
+        Records when agent becomes stuck (can't find path to safety)
+        """
+        for entry in self.data:
+            if entry["agent_id"] == agent.unique_id:
+                entry["stuck"] = True
+                entry["end_time"] = self.model.schedule.steps
+                entry["final_pos"] = agent.pos
+                entry["time_spent"] = entry["end_time"] - entry["start_time"]
+                break
+
     def save_report(self, folder_name: str):
         """
         Generates a .csv in reports/<folder name>/ with all entries
         """
-        if not any(entry["evacuated"] or entry["impacted_by_landslide"] for entry in self.data):
+        if not any(entry["evacuated"] or entry["impacted_by_landslide"] or entry["stuck"] for entry in self.data):
             return
 
         for entry in self.data:
