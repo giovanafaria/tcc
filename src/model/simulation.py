@@ -38,8 +38,7 @@ class EvacuationModel(Model):
         num_agents=20,
         pwd_ratio=0.089, # data from IBGE
         active_areas=None,
-        enable_landslide=True,
-        initial_path_mask=None
+        enable_landslide=True
         ): 
         super().__init__()
 
@@ -52,7 +51,6 @@ class EvacuationModel(Model):
         # env setup
         self.safe_zone = (0, height - 1)
         self.terrain = load_elevation(width, height) # TODO: load elevation info
-
         self.width  = width    # 220
         self.height = height   # 180
 
@@ -105,11 +103,8 @@ class EvacuationModel(Model):
         self.schedule = SimultaneousActivation(self) # prepares the schedule: who moves and when (agents)
         self.running = True # control flag (mesa)
 
-        if initial_path_mask is not None:
-            self.path_mask = initial_path_mask
-        else:
-            shapefile_path = "data/raw/Caminho.shp"
-            self.path_mask = load_paths(width, height, shapefile_path)
+        shapefile_path = "data/raw/Caminho.shp"
+        self.path_mask = load_paths(width, height, shapefile_path)
 
         # reporting system
         self.reporter = ReportManager(self)

@@ -27,7 +27,7 @@ class Evacuee(Agent):
         """
         method is run every simulation time step
         """
-        if not self.alive:
+        if not self.alive or self.stuck or self.evacuated:
             return
 
         if self.pos == self.model.safe_zone:
@@ -45,7 +45,6 @@ class Evacuee(Agent):
             pass
         else:
             self.stuck_counter = 0
-
         self.previous_pos = self.pos
 
         moved_this_step = False
