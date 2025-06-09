@@ -21,7 +21,7 @@ def main():
         help="Grid height"
     )
     parser.add_argument(
-        "--num_agents", type=int, default=100,
+        "--num_agents", type=int, default=480,
         help="Number of agents per run"
     )
     parser.add_argument(
