@@ -13,7 +13,6 @@ class Evacuee(Agent):
 
         self.evacuation_started     = False
         self.alive = True
-
         self.evacuated              = False
         self.impacted_by_landslide  = False
         self.stuck = False
@@ -21,7 +20,7 @@ class Evacuee(Agent):
         self.stuck_counter = 0
         self.previous_pos = None
         # max steps an agent tries to move into a landslide before being marked stuck
-        self.max_stuck_threshold = 40 
+        self.max_stuck_threshold = 40   # will use more than n of steps for no landslide and 200 for activate areas
 
     def step(self):
         """
