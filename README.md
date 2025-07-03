@@ -13,11 +13,17 @@ Agent-based evacuation simulator for landslides and floods in favelas, consideri
 ```bash
 pip install -r requirements.txt
 python -m src.utils.obstacle_mask
+python -m src.utils.landslide_mask
 python -m src.run
 ```
 
 ### How to Run in batch
 ```bash
-python -m src.run_batch --runs x
+python -m src.run_batch --runs x --active_areas 0 1 2
 ```
-*PS:* x = the number of times you want to run the simulation
+
+#### To run without simulating landslides
+```bash
+python -m src.run_batch -n x --disable-landslide
+```
+*PS:* x = the number of times you want to run the simulation, and the numbers in the active areas represent the risk areas
