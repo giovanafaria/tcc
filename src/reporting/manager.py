@@ -102,7 +102,7 @@ class ReportManager:
                     entry["final_pos"] = agent.pos
                     entry["time_spent"] = entry["end_time"] - entry["start_time"]
 
-        reports_dir = Path("reports") / folder_name
+        reports_dir = Path("reports/no_landslide") / folder_name
         reports_dir.mkdir(parents=True, exist_ok=True)  # making sure the dir is ok
 
         timestamp = time.strftime("%Y%m%d-%H%M%S")

@@ -224,6 +224,16 @@ class EvacuationModel(Model):
         1) 10 minute equivalent in step, or
         2) everybody's evacuated
         """
+        # build a dynamic landslide-mask
+        landslide_block = np.zeros_like(self.obstacle_mask, dtype=bool)
+        for agent_obj in self.schedule.agents:
+            if isinstance(agent_obj, Landslide):
+                for (x, y) in agent_obj.front:
+                    if 0 <= x < self.width and 0 <= y < self.height:
+                        landslide_block[y, x] = True
+        # combine static obstacles + landslide blocks
+        self.current_step_combined_obstacle_mask = np.logical_or(self.obstacle_mask, landslide_block)
+
         # everyone takes their action
         self.schedule.step()
         self.current_step += 1
@@ -266,24 +276,13 @@ class EvacuationModel(Model):
         Compute an A* path avoiding both static buildings buildings
         and any cells currently occupied by landslide front(s)
         """
-        # pathfinding function
-        # build a dynamic landslide-mask
-        landslide_block = np.zeros_like(self.obstacle_mask, dtype=bool)
-        for agent in self.schedule.agents:
-            if isinstance(agent, Landslide):
-                for (x, y) in agent.front:
-                    landslide_block[y, x] = True
-
-        # combine static obstacles + landslide blocks
-        combined_obstacle = np.logical_or(self.obstacle_mask, landslide_block)
-
         # pass path_mask to favor cells on defined paths
         return a_star_path(
             self.grid,
             start,
             goal,
             path_mask=self.path_mask,
-            obstacle_mask=combined_obstacle
+            obstacle_mask=self.current_step_combined_obstacle_mask # Uses the precomputed mask
         )
 
     def get_elevation(self, pos):
