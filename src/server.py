@@ -61,7 +61,7 @@ server = ReportEnabledServer( # GUI simulation
      "height": GRID_H,
      "num_agents": 480,
      "pwd_ratio": 0.089, # data from IBGE (2024)
-     "active_areas": [1, 2],  # only shapefile x and y
+     "active_areas": [],  # only shapefile x and y
      "enable_landslide": True
      }  
 )
